@@ -59,6 +59,7 @@ p {
 a {
   color: var(--text-color);
   transition: var(--transition-delay);
+  text-decoration-style: dotted;
 }
 
 a:visited {
@@ -137,6 +138,7 @@ hr {
   border: none;
   height: 1px;
   margin-top: 1.7em;
+  background: repeating-linear-gradient(90deg,var(--text-color),var(--text-color) 1px,transparent 1px,transparent 2px);
 }
 
 table {
@@ -187,6 +189,7 @@ ul.task-list{list-style: none;}
 .item a {
   color: var(--background-color);
   transition: var(--transition-delay);
+  border-bottom: none;
 }
 
 .item a:visited {

@@ -1,12 +1,22 @@
+# ===
+# Script to save an story / article in a single html file.
+# ===
+
+# Imports.
 import os
 import dominate
 import markdown
 import PySimpleGUI as sg
+import readtime
+# ---
 
+# Froms.
 from pathvalidate import sanitize_filename
 from dominate.util import raw
 from dominate.tags import *
+# ---
 
+# Structures.
 class Story:
 
     # Constructor
@@ -113,14 +123,22 @@ class Story:
         d += div_toggle
 
         # Add the title of the story and its link as <h3/> at the top of the page.
+        div_title = div(_class="title")
         if self.story_link == "#":
         # "#" means that the link points to itself, so it's not necessary to
         # have it open in a new tab / window when clicked.
-            d += h3(a(self.title, href=self.story_link))
+            div_title.add(h1(a(self.title, href=self.story_link)))
         else:
-            d += h3(a(self.title, href=self.story_link, target="_blank"))
+            div_title.add(h1(a(self.title, href=self.story_link, target="_blank")))
 
-        # Create the <div/> that will contain the author and category.
+        d += div_title
+
+        # Add the description to the HTML file.
+        div_description = div(_class="description")
+        div_description.add(h4(self.description))
+        d += div_description
+
+        # Create the <div/> that will contain the author, category, and read time.
         div_details = div(_class="details")
 
         if self.author_profile_link == "#":
@@ -145,26 +163,26 @@ class Story:
         div_category += span(raw(get_icons_svg("tag")), _class="item-icon")
         div_category += span(self.category, _class="item-text")
 
-        # Add the author and category <div/> to the HTML file.
+        # Create the <span/> that will contain the read time of the story.
+        div_timer = span(_class="item")
+        div_timer += span(raw(get_icons_svg("timer")), _class="item-icon")
+        div_timer += span(str(readtime.of_html(self.story_html)), _class="item-text")
+
         div_details.add(div_author)
         div_details.add(div_category)
+        div_details.add(div_timer)
 
-        # Add the author and category <div/> to the HTML file.
+        # Add the author, category, and read time <div/> to the HTML file.
         d += div_details 
-
-        # Add the description as <p/> to the HTML file.
-        d += p(em(self.description))
-
-        # Add an <hr/> as a separator.
-        d += hr()
 
         # Add the HTML format of the story to the HTML file. raw() ensures that
         # no further processing is done on the story_html before adding it to
         # the HTML file.
-        d += raw(self.story_html)
-
-        # Add an <hr/> as a separator.
-        d += hr()
+        div_content = div(_class="content")
+        div_content.add(hr())
+        div_content.add(raw(self.story_html))
+        div_content.add(hr())
+        d += div_content
 
         # Fetch the required JavaScript file.
         d_script_file = "script.js"
@@ -203,10 +221,19 @@ def get_icons_svg(type="user"):
                    12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
                   </svg>"""
 
+    svg_timer_sand = """<svg style="width:24px;height:24px" viewBox="0 0 24 24">
+                         <path fill="currentColor" d="M6,2H18V8H18V8L14,12L18,
+                         16V16H18V22H6V16H6V16L10,12L6,8V8H6V2M16,16.5L12,12.5L8,
+                         16.5V20H16V16.5M12,11.5L16,7.5V4H8V7.5L12,11.5M10,
+                         6H14V6.75L12,8.75L10,6.75V6Z" />
+                        </svg>"""
+
     if type == "user":
         return svg_user
     elif type == "tag":
         return svg_tag
+    elif type == "timer":
+        return svg_timer_sand
 # ---
 
 # Retrieves the GUI layout.
@@ -224,7 +251,7 @@ def get_window_layout():
                 [sg.Push(), sg.Text("Link to Author Profile"), sg.InputText(key="-AUTHOR PROFILE LINK-", tooltip=" Direct link to the author profile ")],
                 [sg.Push(), sg.Text("Link to Category"), sg.InputText(key="-CATEGORY LINK-", tooltip=" Direct link to the category of the story ")],
                 [sg.Push(), sg.Text("Story*"), sg.Multiline(key="-STORY-", tooltip=" The Story content ", size=(43,10), autoscroll=True)],
-                [sg.Push(), sg.Checkbox("Story is in Markdown format", key="-MARKDOWN-", 
+                [sg.Push(), sg.Checkbox("Story is in Markdown format", key="-MARKDOWN-", default=True,
                   tooltip=" If selected, the text in Story field will be considered to be in the Markdown format ")],
                 [sg.Push(), sg.Text(""), sg.Button("Save"), sg.Button("Reset", tooltip=" Reset all fields to blank "), sg.Button("Cancel")],
                 [sg.Push(), sg.Multiline("", size=(73,3), key="-MESSAGE-", 
@@ -275,7 +302,7 @@ def main():
                 window["-AUTHOR PROFILE LINK-"].update("")
                 window["-CATEGORY LINK-"].update("")
                 window["-STORY-"].update("")
-                window["-MARKDOWN-"].update(False)
+                window["-MARKDOWN-"].update(True)
                 window["-TITLE-"].SetFocus()
                 window["-MESSAGE-"].update("All values have been reset")
                 continue
